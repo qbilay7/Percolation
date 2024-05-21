@@ -1,0 +1,119 @@
+
+import java.util.Random;
+import java.util.Scanner;
+
+public class Percolation {
+    private boolean[][] grid;
+    private int gridSize;
+    private int gridSquared;
+    private WeightedQuickUnion union;
+    private int virtualTop;
+    private int virtualBottom;
+
+    public Percolation(int n) {
+        this.grid = new boolean[n][n];
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                grid[i][j] = false;
+            }
+        }
+        this.gridSize = n;
+        this.gridSquared = n * n;
+        this.union = new WeightedQuickUnion((n * n) + 2);
+        this.virtualTop = 0;
+        this.virtualBottom = (n * n) + 1;
+    }
+
+    public void openSite(int row, int col) { // opens the site of given row and column
+        if (grid[row][col] == true)
+            return;
+        else
+            grid[row][col] = true;
+    }
+
+    public void openAllSites(double p) { // opens sites with the given probability p
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                boolean result = StdRandom.bernoulli(p);
+                if (result == true) {
+                    grid[i][j] = true;
+                }
+            }
+        }
+
+    }
+
+    public boolean percolationCheck() {
+        int n = grid.length;
+
+        for (int i = 0; i < n; i++) {
+            if (grid[0][i]) {
+                union.connect(virtualTop, i + 1); // connects the virtual top to open sites in the first row
+            }
+            if (grid[n - 1][i]) {
+                union.connect(virtualBottom, (n - 1) * n + i + 1); // connects the virtual bottom to open sites in the
+                                                                   // last row
+            }
+        }
+
+        // Connect adjacent open sites in the grid
+        int[] dx = { 0, 0, -1, 1 }; // left rigth movement vector
+        int[] dy = { -1, 1, 0, 0 }; // up down movement vector
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j]) {
+                    int current = i * n + j + 1; // calculates the index representation in weighted quick union array
+                    for (int k = 0; k < 4; k++) {
+                        int x = i + dx[k]; // calculates the coordinates of adjacent sites
+                        int y = j + dy[k];
+                        if (x >= 0 && x < n && y >= 0 && y < n && grid[x][y]) {
+                            int neighbor = x * n + y + 1; // calculates the index representation in weighted quick union
+                                                          // array
+                            union.connect(current, neighbor); // connects with the neighbor if it is open
+                        }
+                    }
+                }
+            }
+        }
+
+        return union.isConnected(virtualTop, virtualBottom);
+    }
+
+    public void displayGrid() {
+        int squareSize = 30; // Size of each square in pixels
+
+        StdDraw.setCanvasSize(gridSize * squareSize, gridSize * squareSize);
+        StdDraw.setXscale(0, gridSize);
+        StdDraw.setYscale(0, gridSize);
+
+        for (int row = 0; row < gridSize; row++) {
+            for (int col = 0; col < gridSize; col++) {
+                if (grid[row][col]) {
+                    StdDraw.setPenColor(StdDraw.BLUE);
+                } else {
+                    StdDraw.setPenColor(StdDraw.BLACK);
+                }
+
+                StdDraw.filledSquare(col + 0.5, gridSize - row - 0.5, 0.5);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner s = new Scanner(System.in);
+        System.out.println("Please provide the size and then the probability"); // write size first to console, enter,
+                                                                                // and then write the probability
+                                                                                // (between 0 and 1) to
+                                                                                // console (10 times)
+        for (int i = 0; i < 10; i++) {
+            int sz = s.nextInt();
+            double prob = s.nextDouble();
+
+            Percolation percolation = new Percolation(sz);
+            percolation.openAllSites(prob);
+            percolation.displayGrid();
+            StdOut.println(percolation.percolationCheck());
+        }
+        s.close();
+    }
+}
